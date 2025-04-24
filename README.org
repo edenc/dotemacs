@@ -1,0 +1,47 @@
+* SYNOPSIS
+
+My literate dotemacs config using [[https://orgmode.org/][org-mode]]
+
+#+begin_src shell
+  git clone https://github.com/edenc/dotemacs ~/.emacs.d
+  emacs
+#+end_src
+
+* Assumptions & Caveats
+
+- presumes you store =org-mode= files in =~/org=
+- do *NOT* use packaged org-mode tanglers as they will kill the hooks
+  this configuration relies on, use [[./init.el]] as provided
+
+* Features
+
+Still largely undocumented. Read the source in [[./dotemacs.org]] for
+details.
+
+** automatic day/night colortheme transition
+
+- uses spacemacs by default but any theme can be used
+- tweaks for spaceline and linum-mode
+
+** daily mission control agenda
+
+- displays conclusion estimate for planned tasks in =org-agenda-time-grid=
+  - mark tasks as NEXT
+  - invoke mission control agenda =C-c a d=
+- tweaks in =org-agenda-prefix-format= to save space
+
+** org roam and org roam ui
+
+- org roam ui syncs with selected colortheme
+- still lacking proper keybindings
+
+** helm integration
+
+** tested (minimally) on mac and wsl
+
+Your mileage may vary
+
+** typescript development
+
+- lsp
+- prettier

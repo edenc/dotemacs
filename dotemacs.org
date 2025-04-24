@@ -1,0 +1,1281 @@
+:PROPERTIES:
+:ID:       88e5f13d-447a-4bcc-bcd4-40f07e14194d
+:END:
+#+TITLE: Org Mode Dotemacs
+#+STARTUP: show3levels
+
+*Dot Emacs Literate Configuration |* this file contains my emacs
+                                   configuration using =org-mode=
+                                   literate programming.
+
+* synopsis
+:PROPERTIES:
+:ID:       c84da932-8e5a-4ea7-a756-b756e84301c0
+:END:
+
+This file is meant to configure emacs 30.1 with a range of org-mode
+features and software development with multiple languages.
+
+** general considerations
+:PROPERTIES:
+:ID:       f51069cf-9476-4cf3-89c3-6c13b28f9526
+:END:
+
+Running emacs daemon + emacsclient for speed requires some additional
+logic in terms of how things are set up.
+
+** headings
+:PROPERTIES:
+:ID:       546cf144-4b6c-4891-a72a-ffd4ec510b24
+:END:
+
+For headings, use lower-case for ease of typing. The text body, like
+this one, can use regular upper/lower case just like human languages.
+
+* configuration
+:PROPERTIES:
+:ID:       F6764665-B9B0-483B-8E5B-E1BB6B0148BF
+:END:
+
+This section contains code blocks that are tangled to configure emacs
+on startup.
+
+** local configuration
+:PROPERTIES:
+:ID:       176ee1c4-aa28-4514-8fe8-556d1eea1e71
+:END:
+
+This is meant for passwords and generally secret stuff that's local to
+the machine and should sit in an encrypted filesystem.
+
+Preferrably, use veracrypt for encryption everywhere, including
+windows and mac osx.
+
+#+begin_src emacs-lisp
+  (load "~/.emacs-local.el")
+#+end_src
+
+#+RESULTS:
+: t
+
+** global autorevert mode
+:PROPERTIES:
+:ID:       5e549a56-289b-41aa-8e7d-116cce46ea69
+:END:
+
+I want global autorevert mode turned on because it pairs nicely with
+syncthing and orgzly. I can edit files on the mobile and have it show
+up in emacs ASAP.
+
+#+begin_src emacs-lisp
+(global-auto-revert-mode 1)
+#+end_src
+
+** fix org-roam-ui-sync-theme faces
+:PROPERTIES:
+:ID:       654d2657-d685-420f-b41a-5ab1cf57bc34
+:END:
+#+begin_src emacs-lisp
+(setq hl-line-face 'default)
+#+end_src
+
+** font face
+:PROPERTIES:
+:ID:       1b99c148-6e93-4cab-b65b-460184775538
+:END:
+
+I have changed fonts many times but I think I've finally settled into
+Roboto Mono. It's a nice, clean monospace font which renders nicely on
+all systems.
+
+#+begin_src emacs-lisp
+  (add-hook 'after-make-frame-functions
+  	  (lambda (frame)
+  	    (message "setting font face")
+  	    (select-frame frame)
+  	    (set-frame-font "Roboto Mono:pixelsize=20" nil)))
+#+end_src
+
+** exec path from shell
+:PROPERTIES:
+:ID:       bff07d41-b17c-4822-a43a-c134daee7a81
+:END:
+
+This is much needed for integration with external tools in a variety
+of environments, such as docker, mac osx and wsl.
+
+#+begin_src emacs-lisp
+  (exec-path-from-shell-initialize)
+#+end_src
+
+** shackle
+:PROPERTIES:
+:ID:       402a5e4e-96a1-4278-817b-c5a4f7b5103a
+:END:
+#+begin_src emacs-lisp
+  (setq shackle-rules '())
+#+end_src
+
+** helm
+:PROPERTIES:
+:ID:       60d3bb5b-7fac-43cf-97df-a103fa723d8c
+:END:
+
+Best command completion mode available for emacs in my opinion. It
+pairs nicely with =org-mode= and =org-roam= for locating files deeply
+nested into hierarchies as it allows for unordered pattern matching.
+
+#+begin_src emacs-lisp
+  (helm-mode 1)
+
+  (helm-ff-icon-mode)
+#+end_src
+
+*** keybindings
+:PROPERTIES:
+:ID:       fa3df5cc-b02c-4d22-a298-6ec646e1f16f
+:END:
+#+begin_src emacs-lisp
+  (global-set-key (kbd "M-x") #'helm-M-x)
+  (global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+  (global-set-key (kbd "C-x C-f") #'helm-find-files)
+  (global-set-key (kbd "C-c j") 'helm-org-agenda-files-headings)
+#+end_src
+
+*** shackle
+:PROPERTIES:
+:ID:       0a21d65d-c1c6-40a7-a625-ed4417ad1081
+:END:
+#+begin_src emacs-lisp
+  (setq helm-display-function #'pop-to-buffer)
+  (add-to-list 'shackle-rules '("\\`\\*helm.*?\\*\\'" :regexp t :align 'below :ratio 0.33))
+#+end_src
+
+*** spotify
+:PROPERTIES:
+:ID:       72f4131c-f0df-40ec-bb2f-3b8aff8de177
+:END:
+
+#+begin_src emacs-lisp
+  (require 'helm-spotify-plus)
+  (global-set-key (kbd "C-c s s") 'helm-spotify-plus)  ;; s for SEARCH
+  (global-set-key (kbd "C-c s f") 'helm-spotify-plus-next)
+  (global-set-key (kbd "C-c s b") 'helm-spotify-plus-previous)
+  (global-set-key (kbd "C-c s p") 'helm-spotify-plus-play) 
+  (global-set-key (kbd "C-c s g") 'helm-spotify-plus-pause) ;; g cause you know.. C-g stop things :)
+#+end_src
+
+** company mode
+:PROPERTIES:
+:ID:       b3f173bb-5878-4e97-8686-7fe9bc11c9f5
+:END:
+
+Best in-buffer completion, pairs nicely with =org-roam=
+
+#+begin_src emacs-lisp
+  (add-hook 'after-init-hook 'global-company-mode)
+#+end_src
+
+** lsp mode + prettier
+:PROPERTIES:
+:ID:       59c1e6f0-9821-4530-b1e9-79d8785e61da
+:END:
+
+#+begin_src emacs-lisp
+  (require 'lsp-mode)
+  (setq lsp-keymap-prefix "M-n")
+
+  (add-hook 'js-mode-hook #'lsp)
+  (add-hook 'js-mode-hook #'prettier-mode)
+  (add-hook 'typescript-mode-hook #'lsp)
+  (add-hook 'typescript-mode-hook #'prettier-mode)
+#+end_src
+
+** latitude and longitude
+:PROPERTIES:
+:ID:       d0db8493-7dad-4e31-a72b-a019ad765b04
+:END:
+#+begin_src emacs-lisp
+ (setq calendar-latitude -23.55)
+ (setq calendar-longitude -46.63)
+#+end_src
+
+** spacemacs theme
+:PROPERTIES:
+:ID:       604c4396-adb2-4e76-ab71-681cb4189dc4
+:END:
+
+*** don't change font height
+:PROPERTIES:
+:ID:       65240a03-b235-4dc9-9f14-c820f85fd972
+:END:
+#+begin_src emacs-lisp
+ (setq spacemacs-theme-org-height nil)
+#+end_src
+
+*** change theme from into dark/light throughout the day
+:PROPERTIES:
+:ID:       b6c96f04-9177-4677-aaad-aea7ea9d79b5
+:END:
+
+Several adjustments must be made after changing the theme to keep the
+UI consistent.
+
+#+begin_src emacs-lisp
+   (require 'theme-changer)
+
+   (add-hook 'after-make-frame-functions
+   	  (lambda (frame)
+   	    (with-selected-frame frame
+   	      (change-theme 'spacemacs-light 'spacemacs-dark))))
+
+   (add-hook 'theme-changer-post-change-hook
+   	  (lambda (theme)
+   	    (spaceline-spacemacs-theme)
+   	    (let ((foreground (org-find-invisible-foreground)))
+   	      (when foreground
+   		(set-face-foreground 'org-hide foreground)))))
+
+  (add-hook 'theme-changer-post-change-hook
+  	  (lambda (theme)
+  	   (and (boundp 'org-roam-ui-ws-server)
+  		org-roam-ui-ws-server
+  		(org-roam-ui-sync-theme))))
+
+   (add-hook 'theme-changer-post-change-hook
+   	  (lambda (theme)
+   	    (let ((bg (face-background 'line-number nil t)))
+   	      (set-face-background 'fringe bg)
+   	      (set-face-background 'vertical-border bg)
+   	      (set-face-foreground 'vertical-border bg))))
+#+end_src
+
+*** spaceline
+:PROPERTIES:
+:ID:       418eb45c-a8b2-4bc2-b4aa-a3872ad99bb3
+:END:
+**** always show org clock
+:PROPERTIES:
+:ID:       cc522504-9e76-456b-97e5-c118a43abb0d
+:END:
+
+#+begin_src emacs-lisp
+(setq spaceline-org-clock-p t)
+#+end_src
+**** helm mode
+:PROPERTIES:
+:ID:       77a6fd61-50ef-498a-b55a-dd641918e956
+:END:
+
+#+begin_src emacs-lisp
+(spaceline-helm-mode)
+#+end_src
+
+**** info mode
+:PROPERTIES:
+:ID:       50995e14-6668-45a4-bfec-0df2b3fc4589
+:END:
+
+#+begin_src emacs-lisp
+(spaceline-info-mode)
+#+end_src
+
+** nerd icons
+
+#+begin_src emacs-lisp
+  (require 'nerd-icons)
+  (setq org-agenda-category-icon-alist
+        `(("library" ,(list (nerd-icons-faicon "nf-fa-building_columns")) nil nil :ascent center)
+          ("^review" ,(list (nerd-icons-faicon "nf-fa-star")) nil :ascent center)
+          ("^blogpost$" ,(list (nerd-icons-faicon "nf-fa-comment")) nil :ascent center)
+          ("^article$" ,(list (nerd-icons-faicon "nf-fa-file_text_o")) nil :ascent center)
+          ("cats" ,(list (nerd-icons-faicon "nf-fa-cat" nil :scale 1 :padding 0 :stroke 0)) nil nil :ascent center)
+          ("product" ,(list (nerd-icons-faicon "nf-fa-cube" nil :scale 1 :padding 0 :stroke 0)) nil nil :ascent center)
+          ("corporeser" ,(list (nerd-icons-faicon "nf-fa-female" nil :scale 1 :padding 0 :stroke 0)) nil nil :ascent center)
+          ("news" ,(list (nerd-icons-faicon "nf-fa-newspaper" nil :scale 1 :padding 0 :stroke 0)) nil nil :ascent center)
+          ("cognitive" ,(list (nerd-icons-faicon "nf-fae-brain" nil :scale 1 :padding 0 :stroke 0)) nil nil :ascent center)
+          ("elections" ,(list (nerd-icons-faicon "nf-fa-check_to_slot")) nil nil :ascent center)
+          ("games" ,(list (nerd-icons-faicon "nf-fa-chess_knight")) nil nil :ascent center)
+          ("admin" ,(list (nerd-icons-faicon "nf-fa-gears")) nil nil :ascent center)
+          ("legal" ,(list (nerd-icons-faicon "nf-fa-drivers_license")) nil nil :ascent center)
+          ("oil" ,(list (nerd-icons-faicon "nf-fa-droplet")) nil nil :ascent center)
+          ("psyops" ,(list (nerd-icons-faicon "nf-fa-eye")) nil nil :ascent center)
+          ("drafts" ,(list (nerd-icons-faicon "nf-fa-pen_fancy")) nil nil :ascent center)
+          ("health" ,(list (nerd-icons-faicon "nf-fa-heartbeat")) nil nil :ascent center)
+          ("home" ,(list (nerd-icons-faicon "nf-fa-home")) nil nil :ascent center)
+          ("inbox" ,(list (nerd-icons-faicon "nf-fa-inbox")) nil nil :ascent center)
+          ("tech" ,(list (nerd-icons-faicon "nf-fa-hdd_o")) nil nil :ascent center)
+          ("finance" ,(list (nerd-icons-faicon "nf-fa-sack_dollar")) nil nil :ascent center)
+          ("news" ,(list (nerd-icons-faicon "nf-fa-newspaper")) nil nil :ascent center)
+          ("music" ,(list (nerd-icons-faicon "nf-fa-music")) nil nil :ascent center)
+          ("STICKY" ,(list (nerd-icons-faicon "nf-fa-note_sticky")) nil nil :ascent center)
+          ("scratch" ,(list (nerd-icons-faicon "nf-fa-pen_to_square")) nil nil :ascent center)
+          ("readme" ,(list (nerd-icons-faicon "nf-fa-readme")) nil nil :ascent center)
+          ("habit" ,(list (nerd-icons-faicon "nf-fa-repeat")) nil nil :ascent center)
+          ("journal" ,(list (nerd-icons-faicon "nf-fa-rectangle_list")) nil nil :ascent center)
+          ("trash" ,(list (nerd-icons-faicon "nf-fa-trash_can")) nil nil :ascent center)
+          ("groceries" ,(list (nerd-icons-faicon "nf-fa-shopping_bag")) nil nil :ascent center)
+          ("fitness" ,(list (nerd-icons-faicon "nf-fae-halter")) nil nil :ascent center)
+          ("art" ,(list (nerd-icons-faicon "nf-fae-palette_color")) nil nil :ascent center)
+          ("book" ,(list (nerd-icons-faicon "nf-fa-book")) nil nil :ascent center)
+          ("misc" ,(list (nerd-icons-faicon "nf-fa-boxes_stacked")) nil nil :ascent center)
+          ("work" ,(list (nerd-icons-faicon "nf-fa-briefcase")) nil nil :ascent center)
+          ("learn" ,(list (nerd-icons-faicon "nf-fa-book_open_reader")) nil nil :ascent center)
+          ("film" ,(list (nerd-icons-faicon "nf-fa-film")) nil nil :ascent center)
+          ("media" ,(list (nerd-icons-faicon "nf-fa-youtube")) nil nil :ascent center)
+          (".+" ,(list (nerd-icons-faicon "nf-fa-folder")) nil nil :ascent center)
+          ("^$" ("  " nil nil))))
+#+end_src
+
+#+RESULTS:
+| library    | ()         | nil | nil     | :ascent | center |
+| ^review    | ()         | nil | :ascent | center  |        |
+| ^blogpost$ | ()         | nil | :ascent | center  |        |
+| ^article$  | ()         | nil | :ascent | center  |        |
+| cats       | ()         | nil | nil     | :ascent | center |
+| product    | ()         | nil | nil     | :ascent | center |
+| corporeser | ()         | nil | nil     | :ascent | center |
+| news       | ()         | nil | nil     | :ascent | center |
+| cognitive  | ()         | nil | nil     | :ascent | center |
+| elections  | ()         | nil | nil     | :ascent | center |
+| games      | ()         | nil | nil     | :ascent | center |
+| admin      | ()         | nil | nil     | :ascent | center |
+| legal      | ()         | nil | nil     | :ascent | center |
+| oil        | ()          | nil | nil     | :ascent | center |
+| psyops     | ()         | nil | nil     | :ascent | center |
+| drafts     | ()         | nil | nil     | :ascent | center |
+| health     | ()         | nil | nil     | :ascent | center |
+| home       | ()         | nil | nil     | :ascent | center |
+| inbox      | ()         | nil | nil     | :ascent | center |
+| tech       | ()         | nil | nil     | :ascent | center |
+| finance    | ()         | nil | nil     | :ascent | center |
+| news       | ()         | nil | nil     | :ascent | center |
+| music      | ()         | nil | nil     | :ascent | center |
+| STICKY     | ()         | nil | nil     | :ascent | center |
+| scratch    | ()         | nil | nil     | :ascent | center |
+| readme     | ()         | nil | nil     | :ascent | center |
+| habit      | ()         | nil | nil     | :ascent | center |
+| journal    | ()         | nil | nil     | :ascent | center |
+| trash      | ()         | nil | nil     | :ascent | center |
+| groceries  | ()         | nil | nil     | :ascent | center |
+| fitness    | ()         | nil | nil     | :ascent | center |
+| art        | ()         | nil | nil     | :ascent | center |
+| book       | ()         | nil | nil     | :ascent | center |
+| misc       | ()         | nil | nil     | :ascent | center |
+| work       | ()         | nil | nil     | :ascent | center |
+| learn      | ()         | nil | nil     | :ascent | center |
+| film       | ()         | nil | nil     | :ascent | center |
+| media      | ()         | nil | nil     | :ascent | center |
+| .+         | ()         | nil | nil     | :ascent | center |
+| ^$         | (   nil nil) |     |         |         |        |
+
+
+** org mode
+:PROPERTIES:
+:ID:       f0cf59c7-73fc-442b-a454-2dcc9ec3b358
+:END:
+The [[id:96cd3259-46a1-4114-84a9-cd400feb064b][org-mode]] configuration section
+
+*** autofill
+:PROPERTIES:
+:ID:       1edf66a3-463b-4e8b-84f7-e008513f97de
+:END:
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (add-hook 'org-mode-hook
+  	    (lambda () (auto-fill-mode 1))))
+#+end_src
+
+*** org refile targets
+:PROPERTIES:
+:ID:       6c1de9b9-fa40-4289-a9bc-9a971ee49299
+:END:
+
+#+begin_src emacs-lisp
+  (defun ec/org-refile-id-or-bucket-p ()
+    "Allow refiling only to headings that have an ID or are marked with a BUCKET property."
+    (let ((id (org-entry-get (point) "ID"))
+          (bucketp (org-entry-get (point) "BUCKET")))
+      (or id bucketp)))
+
+  (with-eval-after-load 'org
+    (setq org-refile-targets '((org-agenda-files :maxlevel . 10)))
+    (setq org-refile-target-verify-function #'ec/org-refile-id-or-bucket-p))
+#+end_src
+
+*** use org speed commands
+:PROPERTIES:
+:ID:       35fa4ab9-e5a0-40ba-89a8-e47fbda78312
+:END:
+
+Speed commands are very practical and help avoid excessive
+customization, as most =org-mode= commands are available there.
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-use-speed-commands t))
+#+end_src
+
+*** indentation
+:PROPERTIES:
+:ID:       0cb3af6a-7b64-4904-b259-bcc201534805
+:END:
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-startup-indented t)
+    (setq org-hide-leading-stars t))
+#+end_src
+
+*** keywords
+:PROPERTIES:
+:ID:       24b40b6a-7475-4ce8-8ae2-30b9004d4f26
+:END:
+
+#+begin_src emacs-lisp :results none
+  (with-eval-after-load 'org
+    (setq org-todo-keywords '((sequence "TODO(t)" "SOON(s)" "NEXT(n)" "WIP(w)" "|" "DONE(d)")
+                              (sequence "FOLLOWUP(f)" "|")
+                              (sequence "STICKY(y)" "|")
+                              (sequence "|" "NOTE(o)")
+                              (sequence "INBOX(i)" "|")
+                              (sequence "BUCKET(b)" "|")
+                              (sequence "PROJECT(p)" "|")
+                              (sequence "|" "KEEP(k)")
+                              (sequence "|" "DUP(u)" )
+                              (sequence "|" "BAIL(l)" )
+                              (sequence "|" "CANCELLED(c)")))
+    
+    (setq org-use-fast-todo-selection t))
+#+end_src
+
+*** log into drawer
+:PROPERTIES:
+:ID:       ff2e8ac8-95f0-4534-98a3-5b252e3b3edc
+:END:
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-log-into-drawer t))
+#+end_src
+
+*** agenda files
+:PROPERTIES:
+:ID:       2D787237-9C62-4B6E-ABB4-4AEBE26E5F05
+:END:
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-agenda-files (cons (symbol-value 'org-directory) nil)))
+#+end_src
+
+*** fast todo selection
+:PROPERTIES:
+:ID:       552d6b48-7a26-48c9-805b-723aad6b1b72
+:END:
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-use-fast-todo-selection t))
+#+end_src
+
+*** clock-in to WIP state
+:PROPERTIES:
+:ID:       b4e8b2a5-0219-4cb0-8920-67da56fda381
+:END:
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (setq org-clock-in-switch-to-state "WIP"))
+#+end_src
+
+*** custom functions
+:PROPERTIES:
+:ID:       7934c133-b8f9-410d-839d-7e0f97607566
+:END:
+
+**** nth weekday of month
+:PROPERTIES:
+:ID:       d3c24540-44df-4bd4-9af8-bec5d334b6d2
+:END:
+
+This is a function meant for use in =org-mode= sexp expressions.
+
+*For example:*
+
+#+begin_example
+, * TODO pay accountant
+, %%(nth-weekday-of-month-p date 5)
+#+end_example
+
+#+begin_src emacs-lisp
+  (defun nth-weekday-of-month-p (date &optional n)
+  "Check if DATE is the Nth weekday of current month."
+  (or n (setq n 1))
+  (let* ((month (calendar-extract-month date))
+         (year (calendar-extract-year date))
+         (day (calendar-extract-day date))
+         (month-days-to-n (mapcar
+                           (lambda (day)
+                              `(,month ,day ,year))
+                           (number-sequence 1 day)))
+         (business-days (seq-filter
+                         (lambda (date)
+                           (and (memq (calendar-day-of-week date)
+                                      '(1 2 3 4 5))
+                                (not (calendar-check-holidays date))))
+                         month-days-to-n)))
+    (and (eq n (length business-days))
+         (eq day (calendar-extract-day (car (last business-days)))))))
+#+end_src
+
+***************** TODO add prewarning functionality to =nth-weekday-of-month=
+:PROPERTIES:
+:ID:       cb0138b4-6f44-4d88-99d5-98b059afed3f
+:END:
+
+A prewarning is a warning that is displayed *N days before* the event.
+
+***************** END
+
+**** skip function for mission control
+:PROPERTIES:
+:ID:       8d6d1f6a-32a4-4be8-8ee0-e85afe5d6f64
+:END:
+
+#+begin_src emacs-lisp
+    (defun ec/org-skip-habits-with-future-deadlines ()
+    "Skip trees that are habits and have deadlines in the future."
+    (let* ((is-habit (org-is-habit-p))  ; Check if it's a habit
+           (deadline (org-entry-get nil "DEADLINE"))  ; Get deadline if it exists
+           (deadline-time (and deadline (org-time-string-to-time deadline)))
+           (now (current-time)))
+      (if (and is-habit
+               deadline-time
+               (time-less-p now deadline-time))  ; Skip if deadline is in the future
+          (save-excursion (or (outline-next-heading) (point-max)))  ; Skip the heading
+        nil)))  ; Otherwise, don't skip
+
+  (defun ec/org-skip-timed-entries ()
+    "Skip agenda entries that have a time in their timestamp."
+    (let* ((scheduled (org-entry-get nil "SCHEDULED"))
+           (deadline (org-entry-get nil "DEADLINE"))
+           (timestamp (or scheduled deadline)))
+      (if (and timestamp
+               (string-match "[0-9]\\{2\\}:[0-9]\\{2\\}" timestamp))  ; Check if time is present
+          (save-excursion (or (outline-next-heading) (point-max)))  ; Skip this entry
+        nil)))  ; Don't skip if no time is found
+
+  (defun ec/org-skip-for-mission-control-agenda-habits ()
+    "Skip function for mission control."
+    (or (org-agenda-skip-entry-if 'todo
+                             '("STICKY" "NEXT" "WIP" "SOON"))
+        (and (not (org-is-habit-p))
+             (save-excursion (or (outline-next-heading) (point-max))))
+        (ec/org-skip-timed-entries)
+        (ec/org-skip-habits-with-future-deadlines)))
+
+  (defun ec/org-skip-for-mission-control-agenda-scheduled ()
+    "Skip function for mission control."
+    (and (or (org-agenda-skip-entry-if 'todo
+                             '("STICKY" "NEXT" "WIP" "SOON"))
+             (and (org-is-habit-p)
+                  (save-excursion (or (outline-next-heading) (point-max)))))))
+
+  (defun ec/org-agenda-skip-for-soon ()
+    (let* ((is-soon (org-agenda-skip-entry-if 'todo '("SOON")))
+           (skip-to-pos (or is-soon (org-agenda-skip-entry-if 'nottodo '("SOON")))))
+      (and (not is-soon)
+           (not (and (string= (org-get-todo-state) "TODO")
+                     (save-excursion
+                       (and (org-up-heading-safe)
+                            (string= (org-get-todo-state) "WIP")))))
+           skip-to-pos)))
+#+end_src
+
+#+RESULTS:
+: ec/org-agenda-skip-for-soon
+
+**** custom outline path for agenda
+:PROPERTIES:
+:ID:       592551b4-8577-4b53-a1df-97125bb8c507
+:END:
+
+#+begin_src emacs-lisp
+  (defun ec/get-outline-path-minus-top (n sep)
+    (let ((outline-path (org-get-outline-path)))
+      (or (and (= (length outline-path) 0) "")
+          (format "%s%s"
+                  (mapconcat 'identity
+                             (nthcdr n outline-path) sep)
+                  sep))))
+#+end_src
+
+#+RESULTS:
+: ec/get-outline-path-minus-top
+
+**** sexp function for days of week
+:PROPERTIES:
+:ID:       7338d24e-53f2-4d0e-a369-40e9677105a0
+:END:
+
+#+begin_src emacs-lisp
+  (defun ec/day-of-week (days)
+    (let ((dayname (calendar-day-of-week date)))
+      (and (memq dayname days)
+           (format
+            (or (and (> (length entry) 0)
+                     entry)
+                "%s")
+            (org-get-heading)))))
+
+  ;; (let ((entry nil)
+  ;;       (date '(2024 10 20)))
+  ;;   (ec/day-of-week '(1 2 3 4 5)))
+#+end_src
+
+#+RESULTS:
+: ec/day-of-week
+
+**** insert current date and time into DATE property
+:PROPERTIES:
+:ID:       8e937bef-9768-46a4-89cd-28320fbc940c
+:END:
+#+begin_src emacs-lisp
+(defun ec/org-add-inactive-date-property ()
+  "Add a DATE property with the current inactive timestamp to the current org heading."
+  (interactive)
+  (save-excursion
+    ;; Ensure we're in an Org heading
+    (unless (org-at-heading-p)
+      (org-previous-visible-heading 1))
+    ;; Go to the properties drawer or create it
+    (org-entry-put (point) "DATE" (format-time-string "[%Y-%m-%d %a %H:%M]"))))
+#+end_src
+
+#+RESULTS:
+: ec/org-add-inactive-date-property
+
+**** date sort function for todo lists
+:PROPERTIES:
+:ID:       0ae18e18-b10e-4216-9f77-3846a2b4fa24
+:END:
+unfortunately org-mode does not sort in todo lists, and very limited
+sorting in the agenda
+
+#+begin_src emacs-lisp
+  (defun ec/org-sort-by-date (a b)
+    (let* ((ma (get-text-property 0 'org-hd-marker a))
+           (da (org-entry-get ma "DATE"))
+           (mb (get-text-property 0 'org-hd-marker b))
+           (db (org-entry-get mb "DATE"))
+           (tsa (org-timestamp-from-string da))
+           (tsb (org-timestamp-from-string db))
+           timea timeb)
+      (cond ((and da (not db)) +1)
+            ((and (not da) db) -1)
+            ((and da db)
+             (setq timea
+                   (org-encode-time 0
+                                    0
+                                    0
+                                    (org-element-property :day-start tsa)
+                                    (org-element-property :month-start tsa)
+                                    (org-element-property :year-start tsa)))
+             (setq timeb
+                   (org-encode-time 0
+                                    0
+                                    0
+                                    (org-element-property :day-start tsb)
+                                    (org-element-property :month-start tsb)
+                                    (org-element-property :year-start tsb)))
+             (cond ((time-equal-p timea timeb) nil)
+                   ((time-less-p timea timeb) -1)
+                   (t +1))))))
+
+#+end_src
+
+#+RESULTS:
+: ec/org-sort-by-date
+
+*** agenda
+:PROPERTIES:
+:ID:       c6313f40-083d-40c0-91b3-d52b6bb8d4ec
+:END:
+**** files
+:PROPERTIES:
+:ID:       f5544756-7370-4782-91f7-65acb4a86a94
+:END:
+
+#+begin_src emacs-lisp
+  (setq org-agenda-files '("~/org"))
+#+end_src
+
+**** habits
+:PROPERTIES:
+:ID:       6786c152-72fe-4ad4-ad7f-a413368b479c
+:END:
+
+#+begin_src emacs-lisp
+  (require 'org-habit)
+#+end_src
+
+**** finalize agenda with estimate and icons
+:PROPERTIES:
+:ID:       bacf4598-a705-4f3b-ae6e-cd253a8051de
+:END:
+
+#+begin_src emacs-lisp
+   (defun ec/org-sum-effort-by-keyword-agenda (keyword)
+           "Calculate the total effort in minutes for all entries with a given TODO keyword across agenda files."
+           (let ((total 0))
+             (dolist (file (org-agenda-files))
+               (with-current-buffer (find-file-noselect file)
+                 (org-map-entries
+                  (lambda ()
+                    (let ((effort (org-entry-get (point) "Effort")))
+                      (when (and effort (string= (org-get-todo-state) keyword))
+                        (setq total (+ total (org-duration-to-minutes effort))))))
+                  nil 'file)))
+             total))
+   (defun ec/org-agenda-finalize-with-icons ()
+       "Scan agenda and place icons according to categories and habits."
+       (let* ((v-adjust 0.01)
+              (time (current-time))
+              (decoded-time (decode-time time))
+              (day (decoded-time-day decoded-time))
+              (month (decoded-time-month decoded-time))
+              (year (decoded-time-year decoded-time))
+              estimate-total-minutes estimate-time decoded-estimate-time
+              estimate-hour estimate-minute estimate-txt time-string
+              grid-start-p grid-stop-p grid-middle-p)
+         (goto-char (point-min))
+         (while (not (eobp))
+           (beginning-of-line)
+           (let* ((category (get-text-property (point) 'org-category))
+                  (habitp (or (get-text-property (point) 'org-habit-p)
+                              (org-with-point-at (org-get-at-bol 'org-marker)
+                                (and (derived-mode-p 'org-mode)
+                                     (org-is-habit-p)))))
+                  (todo-state (org-with-point-at (org-get-at-bol 'org-marker)
+                                (and (derived-mode-p 'org-mode)
+                                     (org-get-todo-state))))
+                  (structp (get-text-property (point) 'org-agenda-structural-header))
+                  (datep (get-text-property (point) 'org-date-line))
+                  (seriesp (get-text-property (point) 'org-series))
+                  (separatorp (char-equal (char-after (point)) org-agenda-block-separator))
+                  (is-org (org-with-point-at (org-get-at-bol 'org-marker)
+                            (derived-mode-p 'org-mode)))
+                  (start (point))
+                  (props (text-properties-at start))
+                  (text-face (org-get-at-bol 'face))
+                  (org-agenda-type (org-get-at-bol 'org-agenda-type)))
+             (and is-org
+                  (not datep)
+                  (not structp)
+                  (not separatorp)
+                  ;; (and category
+                  ;;       (let ((overlay (make-overlay (+ 3 (line-beginning-position)) (+ 5 (line-beginning-position)))))
+                  ;;         (overlay-put overlay 'display (ec/org-category-icon category text-face))))
+                  ;; (and habitp
+                  ;;      (let ((overlay (make-overlay (+ 5 (line-beginning-position)) (+ 8 (line-beginning-position)))))
+                  ;;        (overlay-put overlay 'display (svg-lib-icon "repeat-variant"
+                  ;;                                    text-face
+                  ;;                                    :margin 0
+                  ;;                                    :padding 0
+                  ;;                                    :scale 0
+                  ;;                                    :stroke 0))))))
+                  (and habitp
+                       (let ((overlay (make-overlay (+ 6 (line-beginning-position)) (+ 7 (line-beginning-position)))))
+                         (overlay-put overlay 'display (nerd-icons-faicon "nf-fa-repeat_alt"))))))
+                  ;; (and habitp
+                  ;;      (let ((overlay (make-overlay (+ 3 (line-beginning-position)) (+ 4 (line-beginning-position)))))
+                  ;;        (overlay-put overlay 'display "!")))))
+           (and (not (buffer-narrowed-p))
+                (equal org-agenda-type 'agenda)
+                ;; don't run any of the following logic if we've already
+                ;; handled a grid
+                (not grid-stop-p)
+                (save-excursion
+                  (beginning-of-line)
+                  (and
+                   ;; this will evaluate to true if we're in the middle
+                   ;; of the grid or in the first line after the grid
+                   (or (and (re-search-forward
+                             "\\([0-9]+\\):\\([0-9]+\\)"
+                             (line-end-position) t)
+                            (setq grid-start-p t))
+                       (and grid-start-p (setq grid-stop-p t)))
+                   ;; if grid stop has been reached, bypass time
+                   ;; calculation and insert the estimate
+                   (or grid-stop-p
+                       ;; initialize estimation values then check if we
+                       ;; must position the estimate in the middle of the
+                       ;; grid because the estimation is for early
+                       ;; completion
+                       (let* ((grid-hour (string-to-number (match-string 1)))
+                              (grid-minute (string-to-number (match-string 2)))
+                              (grid-time (encode-time 0 grid-minute grid-hour day month year)))
+                         (setq estimate-total-minutes
+                               (or estimate-total-minutes
+                                   (ec/org-sum-effort-by-keyword-agenda "NEXT")))
+                         (setq estimate-time
+                               (or estimate-time (time-add time (* estimate-total-minutes 60))))
+                         (setq decoded-estimate-time
+                               (or decoded-estimate-time (decode-time estimate-time)))
+                         (setq estimate-hour
+                               (or estimate-hour (decoded-time-hour decoded-estimate-time)))
+                         (setq estimate-minute
+                               (or estimate-hour (decoded-time-minute decoded-estimate-time)))
+                         (setq time-string (or time-string
+                                               (format-time-string "%H:%M" estimate-time)))
+                         (setq estimate-txt
+                               (or estimate-txt
+                                   (org-agenda-format-item nil "" nil nil nil time-string)))
+                         ;; if the current grid line is higher than the
+                         ;; estimate, flag a grid stop so that the estimate
+                         ;; is inserted above this line
+                         (and (time-less-p estimate-time grid-time)
+                              (setq grid-stop-p t)
+                              (setq grid-middle-p t))))
+                   ;; if we reach this point, insert the estimate. All
+                   ;; estimate calculation should be ended by
+                   ;; short-circuit conditions above
+                   (progn
+                     (beginning-of-line)
+                     (insert estimate-txt
+                             (get-text-property 0 'time estimate-txt)
+                             (format " <- conclusion estimate (%s)"
+                                     (org-minutes-to-clocksum-string estimate-total-minutes)))
+                     (put-text-property
+                      (line-beginning-position)
+                      (point)
+                      'face 'org-agenda-current-time)
+                     (insert "\n")))))
+             (end-of-line 1)
+           (forward-line 1)
+               (while (and (get-char-property (point) 'invisible) (not (eobp)))
+                 (forward-line 1)))
+         (goto-char (point-min))))
+#+end_src
+
+#+RESULTS:
+: ec/org-agenda-finalize-with-icons
+*** org agenda custom commands
+:PROPERTIES:
+:ID:       e2f198e3-3d08-4bbf-b6b2-5676ec47c2fc
+:END:
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (global-set-key (kbd "C-c a") #'org-agenda)
+
+    (setq org-agenda-prefix-format
+  	'((agenda . "    %i  \11%?-12t% s") (todo . "    %i  \11")
+  	  (tags . "    %i  \11") (search . "    %i  \11")))
+
+    (setq org-agenda-custom-commands
+  	'(("x" "All Headings" tags "-TODO=\"DONE\"" nil)
+  	  ("n" "Agenda and all TODOs" ((agenda "" nil) (alltodo "" nil)))
+  	  ("i" "Inbox" tags "+CATEGORY=\"inbox\"-BUCKET=\"t\"" ((org-agenda-overriding-header "Inbox")
+  				(org-agenda-files '("mobile.org" "inbox.org"))))
+  	  ("d" "Daily Mission Control"
+  	   ((agenda ""
+  		    ((org-agenda-span 'day)
+  		     (org-agenda-overriding-header "Sticky Notes")
+  		     (org-agenda-skip-function
+  		      '(org-agenda-skip-entry-if 'nottodo '("STICKY")))))
+  	    (todo "STICKY"
+  		  ((org-agenda-overriding-header "Sticky Notes")
+  		   (org-agenda-todo-ignore-with-date t)))
+  	    (todo "WIP" ((org-agenda-overriding-header "Work In Progress")))
+  	    (agenda ""
+  		    ((org-agenda-overriding-header "Today's Schedule")
+  		     (org-agenda-span 'day)
+  		     (org-agenda-entry-types
+  		      '(:deadline :scheduled* :timestamp :sexp))
+  		     (org-agenda-sorting-strategy '(time-up deadline-up))
+  		     (org-agenda-time-grid
+  		      '((daily today remove-match)
+  			(800 1000 1200 1400 1600 1800 2000) " ---- "
+  			"---------------"))
+  		     (org-agenda-skip-function
+  		      '(org-agenda-skip-entry-if 'todo '("STICKY")))))
+  	    (agenda ""
+  		    ((org-agenda-entry-types '(:scheduled))
+  		     (org-agenda-use-time-grid nil) (org-agenda-span 'day)
+  		     (org-agenda-skip-function
+  		      'ec/org-skip-for-mission-control-agenda-scheduled)))
+  	    (tags-todo "+TODO=\"NEXT\""
+  		       ((org-agenda-overriding-header "Next Actions")
+  			(org-agenda-sorting-strategy
+  			 '(priority-down effort-down))))
+  	    (agenda ""
+  		    ((org-agenda-overriding-header "Habits")
+  		     (org-agenda-entry-types '(:scheduled))
+  		     (org-agenda-skip-function
+  		      'ec/org-skip-for-mission-control-agenda-habits)
+  		     (org-agenda-span 'day) (org-agenda-use-time-grid nil)))
+  	    (alltodo ""
+  		     ((org-agenda-skip-function
+  		       'ec/org-agenda-skip-for-soon))))
+  	   ((org-agenda-files '("habits.org" "backlog.org" "finance.org" "notes.org" "calendar.org"))) nil))))
+
+  (add-hook 'org-agenda-finalize-hook 'ec/org-agenda-finalize-with-icons)
+#+end_src
+
+#+RESULTS:
+| ec/org-agenda-finalize-with-icons |
+
+**** [[id:ff438468-eadd-4144-acdd-98528d9f7a01][create agenda for estimating tasks]]
+*** tags column
+
+#+begin_src emacs-lisp
+  (setq org-agenda-tags-column 70)
+#+end_src
+
+*** org protocol
+:PROPERTIES:
+:ID:       90e3e352-1bb3-430d-874b-e639e6db9f8a
+:END:
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'org-protocol))
+#+end_src
+
+*** org columns default format
+:PROPERTIES:
+:ID:       628d6aee-b81d-4f62-b69e-3883c8733bde
+:END:
+#+begin_src emacs-lisp
+ (setq org-columns-default-format "%12CATEGORY %25ITEM %TODO %Effort{:} %TAGS")
+#+end_src
+
+*** org agenda effort
+:PROPERTIES:
+:ID:       2fe20aec-6c15-47e3-a8ae-fcdb9b2b10b4
+:END:
+#+begin_src emacs-lisp
+ (setq org-global-properties
+   '(("Effort_ALL" . "0:05 0:08 0:13 0:21 0:34 0:55 1:24 2:24 3:53 6:17")))
+#+end_src
+
+*** org-pomodoro
+:PROPERTIES:
+:ID:       8bee48a7-3c56-4601-8bf0-c4288a77aae3
+:END:
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'org-pomodoro)
+    (setq org-pomodoro-clock-break t))
+#+end_src
+
+*** org roam capture
+:PROPERTIES:
+:ID:       2c079a41-674e-4b80-b4ee-288cca3d38f7
+:END:
+#+begin_src emacs-lisp
+    (defun ec/org-roam-insert-subnode ()
+      "Create a subnode inside a selected Org-roam node and insert a link to it at the current buffer point."
+      (interactive)
+      (let* ((parent-node (org-roam-node-read nil nil 'ec/org-roam-node-read-sort-by-inbox))
+             (parent-file (org-roam-node-file parent-node))
+             (title (read-string "Subnode title: "))
+             (new-id (org-id-new))
+             (link (format "[[id:%s][%s]]" new-id title)))
+        (save-excursion
+          (with-current-buffer (find-file-noselect parent-file)
+    	(goto-char (org-roam-node-point parent-node))
+    	;; If it's a file-level node (no heading), go to end of file
+    	(if (= (org-roam-node-level parent-node) 0)
+                (progn
+                  (goto-char (point-max))
+                  (unless (bolp) (insert "\n"))
+                  (insert (make-string 1 ?*) " " title "\n")
+                  (insert ":PROPERTIES:\n:ID: " new-id "\n:END:\n\n"))
+              ;; Else insert one level deeper under the heading
+              (progn
+                (org-end-of-subtree t t)
+                (unless (bolp) (insert "\n"))
+                (insert (make-string (1+ (org-roam-node-level parent-node)) ?*) " " title "\n")
+                (insert ":PROPERTIES:\n:ID: " new-id "\n:END:\n\n")))
+    	(save-buffer)))
+        ;; Now insert link to the new subnode at current buffer point
+        (insert link)))
+
+    (defun ec/org-roam-node-read-sort-by-inbox (completion-a completion-b)
+      "Sort files such that files modified more recently are shown first.
+    COMPLETION-A and COMPLETION-B are items in the form of
+    \(node-title org-roam-node-struct)"
+      (let ((node-a (cdr completion-a))
+    	(node-b (cdr completion-b)))
+        (cond ((string-equal-ignore-case (org-roam-node-title node-a) "inbox") t)
+    	  ((string-equal-ignore-case (org-roam-node-title node-b) "inbox") nil)
+    	  (t (org-roam-node-read-sort-by-file-atime completion-a completion-b)))))
+
+    (setq ec/org-roam-capture-templates '(("n" "Org Roam Node" 'ec/org-roam-insert-subnode)
+  					("c" "Org Capture" 'org-capture)))
+
+    (defun ec/org-roam-capture ()
+      (interactive)
+      (let* ((spec (org-mks ec/org-roam-capture-templates
+    	   "Select a capture template\n========================="
+    	   "Template key: "))
+    	 (f (symbol-function (cadr (car (last spec))))))
+        (funcall f)))
+
+    (global-set-key (kbd "C-c c") #'ec/org-roam-capture)
+
+#+end_src
+
+I am relatively happy with these functions but I need to [[id:FB7FCB32-3B1B-4E72-866B-3838016766DD][brainstorm
+more org roam capture methods]]
+*** org media note
+:PROPERTIES:
+:ID:       8b19eddc-5547-48ff-b804-d468ab122f8d
+:END:
+#+begin_src emacs-lisp
+  (use-package quelpa-use-package)  ;; to allow installation of github packages
+  (with-eval-after-load 'org
+    (use-package org-media-note
+      :quelpa (org-media-note :fetcher github :repo "yuchen-lea/org-media-note")
+      :hook (org-mode .  org-media-note-mode)
+      :bind (("C-c v" . org-media-note-show-interface))  ;; Main entrance
+      :config
+      (setq org-media-note-screenshot-image-dir "~/org/media/")))
+#+end_src
+*** hide drawers
+:PROPERTIES:
+:ID:       062f122c-e655-4d19-9d6e-3be7925ab4f2
+:END:
+#+begin_src emacs-lisp
+  (setq org-hide-drawer-startup t
+        org-startup-folded t)
+#+end_src
+*** refile with link
+:PROPERTIES:
+:ID:       4091bd72-8eba-412f-aac9-5ed69df9f912
+:END:
+#+begin_src emacs-lisp
+(defun ec/org-roam-refile-and-link ()
+  "Refile the current Org-roam node and leave a link to its new location."
+  (interactive)
+  (let* ((origin-buffer (current-buffer))
+	 (origin-point (point))
+         (origin-id (org-id-get-create))
+         (origin-title (nth 4 (org-heading-components)))
+         (refile-target (org-refile-get-location "Refile to: " nil t))
+         (refile-buffer (find-file-noselect (nth 1 refile-target)))
+         (new-heading-point
+  	  (progn
+  	    (org-insert-heading)
+  	    (point))))
+    (save-buffer)
+    (org-id-goto origin-id)
+    ;; Do the refile
+    (org-refile nil nil refile-target)
+    ;; Go back to original buffer and insert a link
+    (with-current-buffer origin-buffer
+      (goto-char new-heading-point)
+      (insert (format "[[id:%s][%s]]" origin-id origin-title)))))
+#+end_src
+*** org capture templates
+#+begin_src emacs-lisp
+  (setq org-capture-templates
+        '(("p" "Password" entry (file+olp "~/org/security.org" "passwords")
+  	 (file "~/org/etc/template/password.org"))
+  	("j" "Journal" entry (file+olp+datetree "diary.org")
+  	 (file "~/org/etc/template/diary.org"))
+  	("g" "Gnus")
+  	("gl" "Message" entry (file "~/org/inbox.org")
+  	 (file "~/org/etc/template/gnus.org"))
+  	("t" "TODO Entries")
+  	("tt" "Heading" entry (file+headline "~/org/inbox.org" "inbox")
+  	 (file "~/org/etc/template/todo.org") :clock-in t)
+  	("L" "Firefox Org Capture Unselected" entry
+  	 (file+headline "~/org/inbox.org" "inbox")
+  	 (file "~/org/etc/template/org-protocol-link-unselected.org")
+  	 :immediate-finish t)
+  	("P" "Firefox Org Capture Selected" entry
+  	 (file+headline "~/org/inbox.org" "inbox")
+  	 (file "~/org/etc/template/org-protocol-link-selected.org")
+  	 :immediate-finish t :kill-buffer t)
+  	("s" "Scratchpad")
+  	("sc" "Code Block" entry (file "~/org/scratch.org")
+  	 (file "~/org/etc/template/codeblock.org") :prepend t
+  	 :jump-to-captured t :kill-buffer t)))
+#+end_src
+
+** use short answers
+:PROPERTIES:
+:ID:       ee4c8c61-9fe6-4c5c-ad93-3c814652fc9e
+:END:
+#+begin_src emacs-lisp
+(setq use-short-answers t)
+#+end_src
+
+** hippie expand
+:PROPERTIES:
+:ID:       fce5a00b-c27b-4147-8825-d2211306a46e
+:END:
+
+Very useful feature for programming. Especially in lisp. [[https://www.reddit.com/r/emacs/comments/urmnjj/text_expansion_with_hippie_expand/][mickeyp
+apparently loves it]]
+
+#+begin_src emacs-lisp
+  (add-hook 'after-init-hook (lambda ()
+  			     (global-set-key "\M- " 'hippie-expand)))
+#+end_src
+
+*************** TODO configure yasnippet
+:PROPERTIES:
+:ID:       b1d658c2-c69b-4ef7-8837-7766bba0e584
+:END:
+*************** END
+
+** check spelling with flycheck
+:PROPERTIES:
+:ID:       5f9a03f9-1cca-46c0-822e-8ea468d21a86
+:END:
+
+#+begin_src emacs-lisp
+  ;; Ensure `flycheck-aspell' is available
+  (require 'flycheck-aspell)
+  ;; If you want to check TeX/LaTeX/ConTeXt buffers
+  (add-to-list 'flycheck-checkers 'tex-aspell-dynamic)
+  ;; If you want to check Markdown/GFM buffers
+  (add-to-list 'flycheck-checkers 'markdown-aspell-dynamic)
+  ;; If you want to check HTML buffers
+  (add-to-list 'flycheck-checkers 'html-aspell-dynamic)
+  ;; If you want to check XML/SGML buffers
+  (add-to-list 'flycheck-checkers 'xml-aspell-dynamic)
+  ;; If you want to check Nroff/Troff/Groff buffers
+  (add-to-list 'flycheck-checkers 'nroff-aspell-dynamic)
+  ;; If you want to check Texinfo buffers
+  (add-to-list 'flycheck-checkers 'texinfo-aspell-dynamic)
+  ;; If you want to check comments and strings for C-like languages
+  (add-to-list 'flycheck-checkers 'c-aspell-dynamic)
+  ;; If you want to check message buffers
+  (add-to-list 'flycheck-checkers 'mail-aspell-dynamic)
+
+  ;; Because Aspell does not support Org syntax, the user has
+;; to define a checker with the desired flags themselves.
+(flycheck-aspell-define-checker "org"
+  "Org" ("--add-filter" "url")
+  (org-mode))
+(add-to-list 'flycheck-checkers 'org-aspell-dynamic)
+#+end_src
+
+** org roam
+:PROPERTIES:
+:ID:       917e747b-e1ae-4e03-890d-089d3cc8192c
+:END:
+#+begin_src emacs-lisp
+  (setq org-roam-db-location
+        (if (eq ec/system-type 'darwin)
+  	  "~/.emacs.d/org-roam-mac.db"
+  	"~/.emacs.d/org-roam-linux.db"))
+
+  (defun ec/configure-org-roam-ui (frame)
+    (with-selected-frame frame
+      (setq org-roam-completion-everywhere t
+  	  org-roam-directory (expand-file-name "~/org"))
+
+      (setq org-roam-ui-sync-theme t
+  	  org-roam-ui-follow t
+  	  org-roam-ui-update-on-save t)
+
+      (add-to-list 'shackle-rules
+  	  '("*org-roam*" :align left :size 0.30 :select t :dedicated t :inhibit-window-quit t))
+      
+      (setq org-roam-buffer-window-parameters '((no-delete-other-windows . t)))
+      (org-roam-db-autosync-mode 1)
+      (shackle-mode 1)))
+
+    (add-hook 'after-make-frame-functions #'ec/configure-org-roam-ui)
+#+end_src
+
+** line number mode
+:PROPERTIES:
+:ID:       7c1cdc87-c6d7-4cb0-91a5-e2d02c3a7bbb
+:END:
+
+#+begin_src emacs-lisp
+  (setq display-line-numbers 'visual
+        display-line-numbers-major-tick 16
+        display-line-numbers-minor-tick 4
+        display-line-numbers-type 'visual)
+  (setq-default display-line-numbers-width 5)
+  (defun ec/configure-line-numbers (frame)
+    (with-selected-frame frame
+      (global-display-line-numbers-mode 1)))
+
+  (add-hook 'after-make-frame-functions #'ec/configure-line-numbers)
+ #+end_src
+
+** fix line number mode faces
+:PROPERTIES:
+:ID:       41369a05-82c2-44ea-8990-6618bf2cf1ee
+:END:
+#+begin_src emacs-lisp
+  (set-face-attribute
+   'line-number nil
+   :inherit '(default))
+
+  (set-face-attribute
+   'line-number-major-tick nil
+   :inherit '(org-block-begin-line line-number)
+   :background 'unspecified
+   :weight 'bold)
+
+  (set-face-attribute
+   'line-number-minor-tick nil
+   :inherit '(font-lock-comment-face line-number)
+   :background 'unspecified
+   :weight 'bold)
+
+#+end_src
+
+#+RESULTS:
+
+** autosave file transforms
+:PROPERTIES:
+:ID:       751abc77-54e6-4c9c-b458-0ab4aa68a973
+:END:
+#+begin_src emacs-lisp
+  (setq auto-save-file-name-transforms
+        `((".*" ,"~/.emacs.d/autosaves/" t)))
+  (make-directory "~/.emacs.d/autosaves/" t)
+
+  (setq make-backup-files nil)
+#+end_src
+
+#+RESULTS:
+
+** firefox execution
+
+I run emacs in wsl under windows so this is needed to open urls in
+windows instead.
+
+:PROPERTIES:
+:ID:       ecc545ef-c3a2-4612-99fb-065efc924c3f
+:END:
+#+begin_src emacs-lisp
+  (if (not (eq ec/system-type 'darwin))
+      (setq browse-url-firefox-arguments '("/c" "start" "firefox")
+  	  browse-url-firefox-program "cmd.exe"
+  	  browse-url-browser-function 'browse-url-firefox))
+#+end_src
+
+** disable scrollbar menubar and toolbar
+:PROPERTIES:
+:ID:       e8ede2ee-d504-4176-b54b-033b86c9570e
+:END:
+#+begin_src emacs-lisp
+  (scroll-bar-mode -1)
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+#+end_src
+
+#+RESULTS:
+
+
