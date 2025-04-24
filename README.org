@@ -11,11 +11,11 @@ My literate dotemacs config using [[https://orgmode.org/][org-mode]]
 
 - presumes you store =org-mode= files in =~/org=
 - do *NOT* use packaged org-mode tanglers as they will kill the hooks
-  this configuration relies on, use [[./init.el]] as provided
+  this configuration relies on, use [[./init.el][init.el]] as provided
 
 * Features
 
-Still largely undocumented. Read the source in [[./dotemacs.org]] for
+Still largely undocumented. Read the source in [[./dotemacs.org][dotemacs]] for
 details.
 
 ** automatic day/night colortheme transition
@@ -26,9 +26,9 @@ details.
 ** daily mission control agenda
 
 - displays conclusion estimate for planned tasks in =org-agenda-time-grid=
-  - mark tasks as NEXT
+  - mark tasks as =NEXT=
   - invoke mission control agenda =C-c a d=
-- tweaks in =org-agenda-prefix-format= to save space
+- tweaks in =org-agenda-prefix-format= to save screen real estate
 
 ** org roam and org roam ui
 
